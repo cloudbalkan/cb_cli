@@ -15,6 +15,10 @@ GRANT="password"
 
 BASE_URL="https://www.cloudbalkan.com"
 
+if [ -f ~/.cloudbalkan ]; then
+    source ~/.cloudbalkan
+fi
+
 if [ -z $CB_USER ]; then
 	echo "Email:"
 	read CB_USER
@@ -35,7 +39,17 @@ AUTH_TOKEN=$(curl -H "Content-Type: application/json" -d "$AUTH" $BASE_URL/api/o
 
 cb_api_index_call () {
     ENDPOINT=$1
-    curl -H 'Authorization: Bearer '$AUTH_TOKEN $BASE_URL/api/$1 2>/dev/null | jq -r ".[] | {id, name}" 
+
+    case $ENDPOINT in
+        servers)
+            FILTERS=" | {id, name, ipaddress, state}"
+        ;;        
+        *)
+            FILTERS=""
+        ;;
+    esac
+
+    curl -H 'Authorization: Bearer '$AUTH_TOKEN $BASE_URL/api/$1 2>/dev/null | jq -r ".[] "$FILTERS 
 }
 
 cb_api_get_call () {
@@ -57,46 +71,30 @@ cb_api_create_call () {
     curl -H 'Authorization: Bearer '$AUTH_TOKEN -d $DATA $BASE_URL/api/$1 2>/dev/null | jq -r ".[] .id" 
 }
 
-_servers_handler () {
-    ACTION=$1
-    ID=$2
+_handler () {
+    ENDPOINT=$1
+    ACTION=$2
+    ID=$3
 
     case $ACTION in
         list)
-            cb_api_index_call servers
+            cb_api_index_call $ENDPOINT
         ;;
         view)
-            cb_api_get_call servers $ID
+            cb_api_get_call $ENDPOINT $ID
         ;;
-    	restart)
-    	    cb_api_post_call servers $ACTION $ID
+    	start|stop|restart)
+    	    cb_api_post_call $ENDPOINT $ACTION $ID
     	;;
         *)
-            echo "Please use on of the following $ACTION actions: list"
+            echo "Please use on of the following $ACTION actions: list | view | start | stop | restart"
         ;;
     esac
 }
-
-_networks_handler () {
-    ACTION=$1
-
-    case $ACTION in
-        list)
-            cb_api_index_call networks
-        ;;
-        *)
-            echo "Please use on of the following $ACTION actions: list"
-        ;;
-    esac
-}
-
 
 case $ENDPOINT in
-    servers)
-        _servers_handler $ACTION $ID
-    ;;
-    networks)
-        _networks_handler $ACTION
+    servers|domains|storage|networks)
+        _handler $ENDPOINT $ACTION $ID
     ;;
     auth-only)
         echo $AUTH_TOKEN
@@ -110,7 +108,15 @@ servers
     view ID     - view server with ID
     start ID    - start server with ID
     stop ID     - stop server with ID
-    restart ID  - restart server with ID"
+    restart ID  - restart server with ID
+
+storage
+    list        - list all storage drives
+    view ID     - view storage drive with ID
+
+domains
+    list        - list all domains
+    view ID     - view domain with ID"
     ;;
 esac
 
