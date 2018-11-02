@@ -35,7 +35,13 @@ AUTH_TOKEN=$(curl -H "Content-Type: application/json" -d "$AUTH" $BASE_URL/api/o
 
 cb_api_index_call () {
     ENDPOINT=$1
-    curl -H 'Authorization: Bearer '$AUTH_TOKEN $BASE_URL/api/$1 2>/dev/null | jq -r ".[] .name, .[] .id" 
+    curl -H 'Authorization: Bearer '$AUTH_TOKEN $BASE_URL/api/$1 2>/dev/null | jq -r ".[] | {id, name}" 
+}
+
+cb_api_get_call () {
+    ENDPOINT=$1
+    ENTITY=$2    
+    curl -H 'Authorization: Bearer '$AUTH_TOKEN $BASE_URL/api/$ENDPOINT/$ENTITY  2>/dev/null | jq
 }
 
 cb_api_post_call () {
@@ -59,9 +65,12 @@ _servers_handler () {
         list)
             cb_api_index_call servers
         ;;
-	restart)
-	    cb_api_post_call servers $ACTION $ID
-	;;
+        view)
+            cb_api_get_call servers $ID
+        ;;
+    	restart)
+    	    cb_api_post_call servers $ACTION $ID
+    	;;
         *)
             echo "Please use on of the following $ACTION actions: list"
         ;;
@@ -93,8 +102,15 @@ case $ENDPOINT in
         echo $AUTH_TOKEN
     ;;
     *)
-        echo "Usage: cbline COMMAND TYPE"
-	echo "ex. cbline list servers"
+        echo "Usage: cli.sh COMMAND TYPE"
+	echo "ex. ./cli.sh servers list"
+    echo "
+servers
+    list        - list all servers
+    view ID     - view server with ID
+    start ID    - start server with ID
+    stop ID     - stop server with ID
+    restart ID  - restart server with ID"
     ;;
 esac
 
