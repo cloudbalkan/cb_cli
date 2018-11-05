@@ -49,7 +49,7 @@ cb_api_index_call () {
         ;;
     esac
 
-    curl -H 'Authorization: Bearer '$AUTH_TOKEN $BASE_URL/api/$1 2>/dev/null | jq -r ".[] "$FILTERS 
+    curl -H 'Authorization: Bearer '$AUTH_TOKEN $BASE_URL/api/$1 2>/dev/null | jq -r ".[] $FILTERS" 
 }
 
 cb_api_get_call () {
